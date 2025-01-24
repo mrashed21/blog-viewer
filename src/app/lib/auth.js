@@ -18,14 +18,27 @@ export async function middleware(req) {
   const { isAuthenticated } = getKindeServerSession();
   const authenticated = await isAuthenticated();
 
-  if (!authenticated) {
-    const url = new URL("/api/auth/login", req.url);
-    return NextResponse.redirect(url);
+  const publicRoutes = ["/", "/login", "/api/auth/login"]; // Define public routes here
+  const pathname = req.nextUrl.pathname;
+
+  // Allow public routes without authentication
+  if (publicRoutes.includes(pathname)) {
+    return NextResponse.next();
   }
 
+  // Redirect to login if not authenticated
+  if (!authenticated) {
+    const loginUrl = new URL("/api/auth/login", req.url);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  // Allow request if authenticated
   return NextResponse.next();
 }
 
+// Apply middleware to all routes except public ones
 export const config = {
-  matcher: ["/protected-route/:path*", "/another-protected-path/:path*"], // Define your protected routes
+  matcher: [
+    "/((?!api/auth/login|login|$).*)", // Protect everything except the home page ("/") and "/login"
+  ],
 };
